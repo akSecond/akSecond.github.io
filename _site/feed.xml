@@ -1,0 +1,960 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Andrew Kornberg</title>
+    <description>Hi, I&#39;m Kornberg, a wild programmer &amp; PhD. candidate</description>
+    <link>http://kornbergfresnel.github.io/</link>
+    <atom:link href="http://kornbergfresnel.github.io/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Sat, 06 Jan 2018 16:57:51 +0800</pubDate>
+    <lastBuildDate>Sat, 06 Jan 2018 16:57:51 +0800</lastBuildDate>
+    <generator>Jekyll v3.0.1</generator>
+    
+      <item>
+        <title>Multi-Agent Actor-Critic For Mixed Cooperative-Competitive Environments</title>
+        <description>&lt;p&gt;&lt;strong&gt;Why propose this framework for Multi-Agent ?&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Q-learning is not effective under non-stationary environment&lt;/li&gt;
+  &lt;li&gt;policy-gradient suffers from a variance that increase as the number of agents grows&lt;/li&gt;
+  &lt;li&gt;at this paper, authors proposal an adaptation of actor-critic methods that consider &lt;em&gt;action policies of other agents&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;Why the former methods are poorly suited to multi-agent environments ?&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;non-stationary cause the changes in the agents’ own policies(that is not explaineable), and this issue also become a challenge of learning stability and prevents the straightforward use of past experience replay, which is crucial for stabilizing deep Q-learning&lt;/li&gt;
+  &lt;li&gt;in multi-agent system, it is common that coordination is required while policy gradient suffers from high variance&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;How do we do ?&lt;/strong&gt;&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;the authors in this paper propose a general-purpose multi-agent learning algorithm&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;learned policies only use local information at execution time&lt;/li&gt;
+  &lt;li&gt;no explicitly communication structure: does not assume a differentiable model of the environment dynamics or any particular structure on the communication method between agents&lt;/li&gt;
+  &lt;li&gt;not only cooperative, but also competitive or mixed task, for this setting is more natural&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;strong&gt;Differ with centralized critic function&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;critic use some addtional information while do not use at test time, in this paper, authors use the policies of other agents&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;the centralized critic function explicitly use the decision-making policies of the other agents, while the authors of this paper let agents learn &lt;em&gt;approximate models of other agents online and effictively use them in their own policy learning procedure&lt;/em&gt;&lt;/li&gt;
+  &lt;li&gt;introduce a method to improve the stability of multi-agent policy by training agent with an &lt;strong&gt;ensemble of policies&lt;/strong&gt; (&lt;strong&gt;QUESTION&lt;/strong&gt;: use the ensemble policies to do what ? RL ?)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;How ensemble policies work ?&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;still the issue — &lt;strong&gt;non-stationary&lt;/strong&gt;. For the non-stationary, the agents’ policies always change, and under the setting of competitive, it is true that agents can derive a strong policy by overfitting to the behavior of their competitors (&lt;strong&gt;WHY?&lt;/strong&gt;)&lt;/li&gt;
+  &lt;li&gt;for learning a more robust model, training a collection of $K$ different sub-policies will work&lt;/li&gt;
+  &lt;li&gt;training collecton of $K$ different sub-policies
+    &lt;ul&gt;
+      &lt;li&gt;at each episode, randomly select one particular sub-policy $\mu_i^{(k)}$ for each agent to execute&lt;/li&gt;
+      &lt;li&gt;for agent $i$, maximizing the ensemble objective function: $J_e(\mu_i)=\mathbb{E}_{k \sim unif(1,K),s \sim p^\mu, a \sim \mu_i^{(k)} }[R_i(s,a)] $&lt;/li&gt;
+      &lt;li&gt;&lt;strong&gt;QUESTION&lt;/strong&gt;: how to matain the collection of sub-policy&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;DPG(Deterministic Policy Gradient) Algorithms&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;it is alsow posible to extend the policy gradient framework to deterministic policies $\mu_{\theta}: \mathcal{S} \rightarrow \mathcal{A}$. So we can rewrite the objective function $J$ as:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\Delta_{\theta}J(\theta)=\mathbb{E}_{s\sim \mathcal{D} }[\nabla_{\theta}\mu_{\theta}(a \mid s)\nabla_aQ^{\mu}(s,a) \mid_{a=\mu_{\theta}(s) }]&lt;/script&gt;
+
+&lt;p&gt;While the derive $\nabla_aQ$ implies that the action space should be continuous. &lt;em&gt;DDPG(Deep deterministic policy gradient)&lt;/em&gt; is a variant of DPG where the policy $\mu$ and critic $Q^{\mu}$ are approximated with deep neural networks. DDPG is an off-policy algorithm, and samples trajectories from a replay buffer of experiences that are stored throughout training. DDPG also makes use of a target network, as in DQN&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Multi-Agent Actor Critic&lt;/strong&gt;&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;follow the above setting, the authors of this paper propose a simple extension of actor-critic policy gradient methods where the critic is augmented with the extra information about the policies of other agents&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;suppose a game with $N$ agents with policies $\pi={\pi_1,\pi_2,…,\pi_n}$ parameterized with $\theta={\theta_1,\theta_2,…,\theta_n}$&lt;/li&gt;
+  &lt;li&gt;the actor learn a $Q$ function for each agent $i$ which accepts actions of all agents with some state information&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;MADDPG&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;a primary motivation behind MADDPG is that if we know the actions taken by all agents, the environment is stationary event as the policies change.&lt;/li&gt;
+  &lt;li&gt;while under the real conditions, we cannot know the actions of other agents, also their observation or policies, but we can approximate their policies from their observations.&lt;/li&gt;
+  &lt;li&gt;then we can replace the real action input of critic with approximation action: $\hat{y}=r_i+\gamma Q_i^{\mu’}{(x’, \mu_i^{‘1}(o1)),\mu_i^{‘2}(o2),…,\mu_i^{‘N}(oN))}$&lt;/li&gt;
+  &lt;li&gt;​&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        <pubDate>Tue, 19 Dec 2017 00:00:00 +0800</pubDate>
+        <link>http://kornbergfresnel.github.io/2017/12/Multi-Agent-Actor-Critic-For-Mixed-Cooperative-Competitive-Environments/</link>
+        <guid isPermaLink="true">http://kornbergfresnel.github.io/2017/12/Multi-Agent-Actor-Critic-For-Mixed-Cooperative-Competitive-Environments/</guid>
+        
+        <category>paper</category>
+        
+        <category>multi-agent</category>
+        
+        <category>reinforcement-learning</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>Analysis - Fictitious Self-Play in Extensive-Form Games</title>
+        <description>&lt;p&gt;这是Deep Mind于2015年发表在JMLR上的一篇文章，文章提出了fictitious play的两种变体方法，使得fictious play能够在大型问题中得到有效的应用。这两种方法在文中分别被称为Full-width extensive-form play（XFP）和Fictitious self-play（FSP）。其实现都是基于行为策略，使用这种策略的一个好处是，可以极大的减少需要参考的动作空间和状态数量，从而减轻模拟过程或者算法对计算资源的消耗，学习速率当然也会有提升。Deep Mind的文章一般涉及的知识面都很广，交叉性很强，有必要预先了解一些博弈论的知识（虽然文章中也有数理上的说明），有必要可以参看&lt;a href=&quot;https://zh.wikipedia.org/wiki/博弈论#范式博弈（Normal_form_game）&quot;&gt;WikiPedia&lt;/a&gt;。&lt;/p&gt;
+
+&lt;p&gt;（以下所有“玩家”和“agent”意义相同）&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Fictitious Play&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;fictitious play是Brown在1951年提出的一种游戏理论模型，简单来讲是一个多次重复模拟实验模型，每次模拟都会让每个玩家选择一个针对其对手的行为而言做出的最佳策略。而玩家的平均策略在某些类别的游戏中（比如二人零和博弈）均会收敛于纳什均衡（Nash Equlibrium，NE）。Leslie 和 Collins 在 2006 年给出了泛化弱化self-play模型。这种模型和通常的self-play有着类似的收敛保证，但是允许有近似best-response和扰动的平均策略更新，所以也让这个扩展模型对机器学习尤其合适。泛化弱化fictitious play是一个混合策略模型，其每次策略迭代使用凸优化线性规则，同时考虑上一次混合行为策略和次最优best-response（之后会解释）。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Extensive-Form Equilibrium &amp;amp; Normal-Form Equilibrium&lt;/strong&gt;&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;展开式博弈和常态博弈的一个基本区别是后者的定义避免了如何计算策略的问题，游戏是怎么进行的在常态博弈下没法给出，而前者是讨论游戏进程的一个比较方便的表示形式。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;em&gt;extensive-form quilibrium&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;展开式博弈（Extensive-Form Euilibrium）是一种涉及到多个agents的序列化交互模型，这种基于游戏树的形式可以用 $(\mathcal{N},\mathcal{A},\mathcal{S},\mathcal{U},R)$ 这样一个元组来描述。其中 $\mathcal{N}$ 表示agents集合，$\mathcal{A}$ 表示动作空间，$\mathcal{A_i}$ 表示对应agent的专有动作空间，$\mathcal{S}$ 表示状态空间。在这棵游戏树上，每个节点代表一个状态 $s \in \mathcal{S}$，状态与其后继节点直接的连接（树的边）代表一个动作空间的子集 $\mathcal{A(s)}$。假设博弈过程是具有完美回忆（perfect-recall）属性的，那么使用 $\mathcal{U_i}$ 来表示每个agent的游戏记忆，也就是 $\mathcal{U_i}=u^i_1,a^i_1,u^i_2,a^i_2,…,u^i_n$。$R$ 表示一个pay-off映射矩阵，也就是RL中的reward。&lt;/p&gt;
+
+&lt;p&gt;所有agent在这场博弈中的目的都是最大化自己的收益（pay-off），而在不完美博弈中，agent只知道自己的信息状态而不知道其他agents的信息状态，实际情况比如Poker游戏便是这样：每个玩家只知道自己的手牌信息而不知道其他玩家的手牌信息，如果玩家能够记住他们自己的历史出牌情况的话（完美回忆）每次决策都会基于其动作的概率分布来进行下一次的游戏行为。&lt;/p&gt;
+
+&lt;p&gt;玩家的行为策略可以理解为基于其信息状态 $\mathcal{U_i}$ 的动作概率分布 $\pi^i(u) \in \Delta(\mathcal{A(u)})$，其中 $u \in \mathcal{U_i}$。用 $\Delta_b^i$ 表示玩家 $i$ 的行为策略集合，用 $\pi=(\pi_1,\pi_2,…,\pi_n)$ 表示所有玩家的策略组合，$\pi^{-i}$ 表示除去玩家 $i$ 以外的策略组合，那么玩家 $i$ 的针对所有对手策略 $\pi^{-i}$ 的best-response（最佳响应策略）为：&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;b^i(\pi^{-i})= \arg \max_{\pi^i \in \Delta^i_b}R^i(\pi^i, \pi^{-i})&lt;/script&gt;
+
+&lt;p&gt;在近似情况下，假设pay-off和最佳情况相差 $\epsilon$，那么用 $\epsilon$-NE 来表示次最优解。&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;normal-form equilibrium&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;常态博弈在博弈论中也称为正则博弈或者范式博弈、策略型赛局或标准赛局。常态博弈的策略（pure strategies）和展开式博弈的策略集合关系可以表示为 $\Delta^i_p \in \Delta^i_b$。之所以叫pure strategies，因其规定了玩家可能遇到的所有情况下的确定性行为，也就是每个状态下所做的动作都是唯一确定的，而另一种 mixed strategies 可以理解为基于所有 pure strategies 的概率分布下的混合纯策略。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Realization-equivalence&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;实现等价性原则在文章中被提到用来描述在扩展形式下的行为策略和常态形式下的混合策略之间的等价关系：&lt;/p&gt;
+
+&lt;p&gt;首先定义如果两个策略拥有相同的概率分布，那么它们就是实现等价的，同时Kuhn在1953年的理论研究证明，在具有完美记忆情况下，任何混合策略都是和行为策略实现等价的。这为之后的实现简化提供了理论依据。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Extensive-Form Fictitious Play &amp;amp; Fictitious Self-play&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;展开式虚拟对局（XFP）实现了best-response和当前策略的凸优化组合，从而实现在线性空间和限行时间复杂度的情况下实现策略更新。假设对于某个玩家而言，其当前的游戏状态是 $s$，那么可以得到一个关于状态的常量：$\lambda_1x_\pi(s) + \lambda_2x_b(s)$。其中 $\lambda_1 + \lambda_2=1$，原始基于当前信息状态概率分布的凸优化组合为：$\pi_{t+1}(s)=\lambda_1x_\pi(\sigma_s)\pi(s)+\lambda_2x_b(s)b(s)$，根据实现等价性原则，该行为策略的凸优化组合等价于常态博弈下的混合策略模型：$M=\lambda_1\Pi+\lambda_2B$，那么正则化后的策略更新的线性组合可以写成：&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\pi_{t+1}(s)=\pi_{t}(s) + { {\lambda_2x_{b_{t} }(\sigma_s)(b_t(s)-\pi_t(s))} \over {\lambda_1x_{\pi_t}(\sigma_s) + \lambda_2x_{b_t}(\sigma_s)} }&lt;/script&gt;
+
+&lt;p&gt;其算法表示如下，每次迭代涉及两个操作，1）根据当前平均策略计算best-response；2）使用best-response去更新当前平均策略。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/xfp.png&quot; width=&quot;50%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;但这种方法的一个缺点也很明显，每次迭代都需要遍历所有的游戏状态，而广义下的虚拟对局只需要近似的best-response就可以进行策略的迭代更新。&lt;/p&gt;
+
+&lt;p&gt;Fictitious Self-play通过采样方式（或者说replay-buffer）降低了数据量，又通过强化学习和监督学习的方式把原有的计算best-response和平均策略的方法分别替换掉，从而实现一个对XFP的近似估计。具体的做法是把游戏数据（或者说玩家游戏经验，信息状态序列）分成两个集合存储，其中一个存储形式为 $(s_t,a_t,r_{t+1},s_{t+1})$ 作为强化学习的数据集来得到玩家的best-response；另一个形式为 $(s_t,a_t)$ 用于监督学习得到玩家的平均策略。在强化学习模型下，为了能够很好的解决对best-response的近似估计，玩家的对局经验都是从他们对手的策略组合中采样得到的。假设训练过程中我们每次得到一个次最优解 $\epsilon-NE$，第 $k$ 次的 $\epsilon$ 我们需要保证它在 $k \rightarrow \infty$ 的时候是收敛的 $\epsilon \rightarrow 0$，然而如果实际训练过程中MDP之间是不相关的话，玩家学习到的知识很难被传递下去。然而在虚拟对局模型中，MDP有个特殊的结构，玩家在第 $k$ 轮的平均策略组合是两个混合策略：上一局的平均策略和best-response的凸优化的组合。 这样就能够保证学到的知识能够被利用起来。&lt;/p&gt;
+
+&lt;p&gt;而使用监督学习部分通过拟合一个 $\mathcal{S} \rightarrow \pi(s,a)$ 的动作概率分布函数得到一个平均策略，最后再将这个平均策略和RL过程学习到的best-response进行凸优化线性组合的到混合策略模型，最后的实验结果显示FSP的近似结果在大规模场景中的近似效果比小规模的近似效果要好，几乎一致。算法描述如下：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/fsp.png&quot; width=&quot;50%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;References&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;&lt;a href=&quot;http://jmlr.org/proceedings/papers/v37/heinrich15.pdf&quot;&gt;Fictitious Self-Play in Extensive-Form Games&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://zh.wikipedia.org/wiki/博弈论#范式博弈（Normal_form_game）&quot;&gt;WikiPedia&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;http://www.jianshu.com/p/bcbc41125c54&quot;&gt;Neural FSP&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+</description>
+        <pubDate>Sun, 17 Dec 2017 00:00:00 +0800</pubDate>
+        <link>http://kornbergfresnel.github.io/2017/12/Analysis-Fictitious-Self-Play-in-Extensive-Form/</link>
+        <guid isPermaLink="true">http://kornbergfresnel.github.io/2017/12/Analysis-Fictitious-Self-Play-in-Extensive-Form/</guid>
+        
+        <category>paper</category>
+        
+        <category>reinforcement-learning</category>
+        
+        <category>multi-agent</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>Overview - Multi-Agent</title>
+        <description>&lt;p&gt;&lt;strong&gt;1. Multi-Agent reinforcement learning algorithms&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;keep tracking of the other agents’ policy for adaptation. (opponent modeling)&lt;/li&gt;
+  &lt;li&gt;a fusion of temporal-different RL, game theory, and more general direct policy search techniques&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;2. Fully cooperative tasks&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;in the absence of additional coordination mechanisms, different agents may break these ties among multiple optimal joint actions in different ways,  and the resulting joint action may be suboptimal&lt;/li&gt;
+  &lt;li&gt;the Team Q-learning algorithm avoids the coordination problem by assuming that the optimal joint actions are unique (which is not always the case)&lt;/li&gt;
+  &lt;li&gt;Distributed Q-learning algorithm and Frequency Maximum Q-value both work under deterministic tasks or static tasks&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;3. A general way to solving the coordination problem is to make sure that any ties are broken by all the agents in the same way&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Social conventions encode a priori preferences toward certain joint actions, and help break ties during action selection.&lt;/li&gt;
+  &lt;li&gt;communication can be used to negotiate action choices, partial or complete q-tables, state-measurements, rewards, learning parameters, etc.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;what’s the meaning of breaking tie ?&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;break ties among multiple optimal joint actions in different ways, the tie means joint actions array&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;4. Mixed tasks: no constraints are imposed on the reward functions of the agents, this model is most for self-interested (自利) (but not necessarily competing) agents&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;there still has some difficulties for the dynamic behavior of the agents (nonstationary). This is why most of the methods in this category focus on adaptation to the other agents&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;single-agent RL algorithms&lt;/strong&gt; like Q-learning can be directly applied to the multi-agent case for that these algorithms learning without being aware of (意识到) the other agents, so the nonstationary of the MARL problem invalidates most of the single-agent RL theoretical guarantees, and also for their simplicity. But it appears that for certain parameter settings, Q-learning is able to converge to a coordinated equilibrium in particular games, in other cases, unfortunately, Q-learners exhibit non-stationary cyclic behavior.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;the agent-independent methods&lt;/strong&gt; has the similar structure like fully-competitive task, but there has a difference in the solver&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;in current method, solver(i) returns agent i’s part of some type of equilibrium (a strategy), and eval(i) gives the agent’s expected return given this equilibrium, &lt;em&gt;the goal is to converge to an equilibrium in every state.&lt;/em&gt;
+    &lt;ul&gt;
+      &lt;li&gt;the update requires all agents use the same algorithm for measure all actions and rewards, but it only guaranteed to maintain identical results for all the agents when solve returns consistent equilibrium strategies for all the agents&lt;/li&gt;
+      &lt;li&gt;&lt;strong&gt;so there will have a selection problem arises when the solution of solve is not unique&lt;/strong&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;in the agent-independent methods, there has some external mechanism (coordination or negotiation) to guarantee the convergence of NE selection, such as &lt;strong&gt;correlated equilibrium Q-learning &amp;amp; asymmetric Q-learning&lt;/strong&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;agent-tracking methods&lt;/strong&gt; estimate the policies of models (consider static or dynamic), and this category requires a &lt;em&gt;best-response&lt;/em&gt; rather convergence to stationary strategies, and each agent is assumed capable to observe the other agents’ actions
+    &lt;ul&gt;
+      &lt;li&gt;under the static tasks, there has some important algorithms: MetaStrategy, Hyper-Q&lt;/li&gt;
+      &lt;li&gt;under the dynamic tasks, there has some important algorithms: Non-Stationary Converging Policies&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;agent-aware (感知) methods target convergence, as well as adaptation to the other agents&lt;/strong&gt;
+    &lt;ul&gt;
+      &lt;li&gt;under the static tasks, there has some important algorithms: AWESOME&lt;/li&gt;
+      &lt;li&gt;under the dynamic tasks, there has some important algorithms: Win-or-Learn-Fast Policy Hill-Climbing (WoLF-PHC)&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;5. Application domains: distributed control, multi-robot teams, trading agents, and resource management&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;distributed control is a meta-application for cooperative multi-agent systems, agents are controller, and their environment is the controlled process&lt;/li&gt;
+  &lt;li&gt;providing domain knowledge to the agents can greatly help them to learn solutions of realistic tasks, and domain knowledge can be supplied in several forms: informative reward functions, rewarding promising behaviors rather than just the achievement of the goal&lt;/li&gt;
+  &lt;li&gt;so far, game-theory-based analysis has only been applied to the learning dynamics of the agents, while the dynamics of the environment have not been explicitly considered.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;6. Related work &amp;amp; Extensive overview of MARL&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;rather than estimating value functions and using them to derive policies, it is also possible to directly explore the space of agent behaviors using, e.g., nonlinear optimization techniques.&lt;/li&gt;
+  &lt;li&gt;MARL aims to provide an array of algorithms that enable multiple agents to learn the solution of difficult tasks, using limited or no prior knowledge.&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        <pubDate>Thu, 14 Dec 2017 15:35:00 +0800</pubDate>
+        <link>http://kornbergfresnel.github.io/2017/12/Overview-Multi-Agent/</link>
+        <guid isPermaLink="true">http://kornbergfresnel.github.io/2017/12/Overview-Multi-Agent/</guid>
+        
+        <category>multi-agent</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>Prove of Double Q-learning</title>
+        <description>&lt;p&gt;In some stochastic environments the well-known reinforcement learning algorithm Q-learning performs very poorly. This poor performance is caused by large overestimations of action values. These overestimations result from a positive bias that is introduced because Q-learning uses the maximum action value as an approximation for the maximum expected action value. The update of Q-learning is:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;Q_{t+1}(s_t,a_t)=Q_t(s_t,a_t)+\alpha_t(s_t,a_t)(r_t+\gamma \max_a Q_t(s_{t+1},a)-Q_t(s_t,a_t))&lt;/script&gt;
+
+&lt;p&gt;While this update method has a issue—overestimation, cause’ this formula always choose the maximum value of $Q_t(s_{t+1},a \mid a \in \mathcal{A}(s_{t+1}))$.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Estimating the maximum expected value&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Assume that there has $M$ random variables&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;X=\{ X_1, X_2,…,X_M \}&lt;/script&gt;
+
+&lt;p&gt;and the maximum expected value of thise valriable set is:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\max_{i}E[X_i]&lt;/script&gt;
+
+&lt;p&gt;Cause we have no knowledge of the function form and parameters of the underlying distribution of the variables in $X$, so we need construct appoximations for $E[X_i]$ for all $i$. Assume we have a sample set $S=\bigcup^M_{i=1}S_i$, in which $S_i$ is a sample set of $X_i$. Also we assume that each $S_i$ obey the iid condition (独立同分布), and unbias estimation can be the average of each $S_i$, then we have:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;E[X_i]=E[\mu_i]\thickapprox\mu_i(S) \overset{def}{=}{ {1\over \vert S_i \vert}{\sum_{s\in S_i}s} }&lt;/script&gt;
+
+&lt;p&gt;Which $\mu_i$ represents the estimator of $X_i$, so, if we wanna get the $\max_i{E[X_i] }$, we can calculate the $\max \mu_i(S)$ to get the approximation, while $E{ \max_i \mu_i }$ is the unbias of $\max_i \mu_i$.&lt;/p&gt;
+
+&lt;p&gt;We introduce two conception, PDF (probability density function) $f_i(x)$ and CDF (cumulative distribution function) $F_i(x)$:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;F_i(x)=\int_{-\infty}^{x}f_i(x)dx&lt;/script&gt;
+
+&lt;p&gt;and $F_i(x) = \int_{-\infty}^{\infty}f_i(x)dx=1$, so, the CDF-formula of $\max_i{E[X_i] }$ is: $\max_i\int_{-\infty}^{\infty}f_i(x)dx$.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Double Estimator&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Here, we assume there has two independent sample set $S_A$ and $S_B$, while $S_A=\bigcup_{i=1}^M{S_A^i}$ and $S_B=\bigcup_{i=1}^M{S_B^i}$, and $S_A^i \bigcap S_B^i=\emptyset$. As we mentioned above, we create estimatior $\mu_i^A$ or $\mu_i^B$ for each subset of $S_A$ or $S_B$.&lt;/p&gt;
+
+&lt;p&gt;There has some differences as we mentioned above, I believe you have detected them. Now, we will use one sample set to select the maximal estimates in one estimator set, suppose we select $S_A$ ans $\mu_A(S)$ to do that, then we define the maximal estimates:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;Max^A(S) \overset{def}{=} \{j \mid \mu_j^A(S)\}&lt;/script&gt;
+
+&lt;p&gt;If there has many $j$, then we select one from them randomly. And because $\mu^B$ is an independent, unbiased set of estimators, we have $E[\mu_j^B]=E[X_j]$ for all $j$, including all $j \in Max^A$. Let $a^{*}$ be the extimator that maximizes $\mu^A$: $\mu_{a^\star}^A(S)\overset{def}{=}\max_i\mu_{i}^A(S)$. Then we can use $\mu_{a^\star }^B$ as an estimator for $\max_iE[X_i]$, and we have:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\max_iE[X_i]=max_iE[\mu_i^B]\thickapprox \mu_{a^\star}^B&lt;/script&gt;
+
+&lt;p&gt;Now, assume that the underlying PDFs are continuous, then the probability $P(j=a^{\star})$ equals to the probability that all $i \ne j$ give lower estimates. Thus $\mu_j^A(S)=x$ is maximal for some value $x$ with probability $\Pi_{i \ne j}^M{P(\mu_i^A&amp;lt;x)}$, then $P(j=a^\star)$ is:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+P(\mu_j^A=x)\Pi_{i\ne j}^M{P(\mu_i^A&lt;x)} \overset{def}{=} \int_{-\infty}^{\infty}f_j^A(x)\Pi_{i\ne j}^M{F_i^A(x)dx} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;And $E{\mu_{a^{*} }^B}$ is a unbiased estimation of $\mu_{a^\star}^B$, the expectation of $\mu_{a^\star }^B$ is:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\sum_{j}^M{P(j=a^{\star})E[\mu_j^B] }=\sum_{j}^M{E[\mu_j^B]\int_{-\infty}^{\infty}f_{j}^A(x)\Pi_{i\ne j}^M{F_i^A(x)dx} }&lt;/script&gt;
+
+&lt;p&gt;&lt;strong&gt;Is unbias or lower than the unbias ?&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;As we metioned above, we have&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;E[X_i]=E[\mu_i^A]=E[\mu_i^B]&lt;/script&gt;
+
+&lt;p&gt;and let&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\mathcal{M}\overset{def}{=}\{j \mid E[X_j]=\max_iE[X_i]\}&lt;/script&gt;
+
+&lt;p&gt;be the set of elements that maximize the expectated values, so the expectated value can be written as：&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{align}E[\mu_{a^\star}^B]  &amp;=P(a^{\star} \in \mathcal{M})E[\mu_{a^{\star} }^B \mid a^{\star} \in \mathcal{M}]+P(a^{\star} \notin \mathcal{M})E[\mu_{a^{\star} }^B \mid a^{\star} \notin \mathcal{M}] \\ &amp;=P(a^{\star} \in \mathcal{M})\max_{i}E[X_i]+P(a^{\star} \notin \mathcal{M})E[\mu_{a^{\star} }^B \mid a^{\star} \notin \mathcal{M}] \\ &amp;\le P(a^{\star} \in \mathcal{M})E[\mu_{a^{\star} }^B \mid a^{\star} \in \mathcal{M}]+P(a^{\star} \notin \mathcal{M})\max_i E[X_i] \\ &amp;=\max_i{E[X_i] }\end{align} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;Where the inequality is strict if and only if $P(a^{\star} \notin \mathcal{M}) &amp;gt; 0$. This happens when the variables have different expected values, but their distributions overlap. In contrast with the single estimator, the double estimator is unbiased when the variables are iid, since then all expected values are equal and $P(a^{\star} \in \mathcal{M})=1$.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Prove convergence of Double Q-learning&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Although we solve the estimation issue, there has another big issue needs to be solved, that’s the convergence of Double Q-learning. Cause’ its convergenc e is inherited from Q-learning, so I will show the prove of convergence of Q-leraning (&lt;em&gt;also I acquiesce that you know the Double Q-learning algorithm and its update process&lt;/em&gt;).&lt;/p&gt;
+
+&lt;p&gt;All we know that the update process of Q-learning is:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;Q(S_{t+1}, a_{t+1}) := Q(S_{t+1}, a_{t+1}) + \alpha(r+\gamma\max_{a}Q(S_{t}, a) - Q(S_{t+1}, a_{t+1}))&lt;/script&gt;
+
+&lt;p&gt;Now, let us define some ABC of Markov decision process $(\mathcal{X}, \mathcal{A}, \mathcal{P}, r)$, where&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;$\mathcal{X}$ is the finite state-space&lt;/li&gt;
+  &lt;li&gt;$\mathcal{A}$ is the finite action-space&lt;/li&gt;
+  &lt;li&gt;$\mathcal{P}$ represents the transition probabilities&lt;/li&gt;
+  &lt;li&gt;$r$ represents the reward function&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Then, we have the function $r$ defined as:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;r: \mathcal{X} \times \mathcal{A} \times \mathcal{X} \rightarrow \mathbb{R}&lt;/script&gt;
+
+&lt;p&gt;And the value of a state $x$ is defined for a sequence of controls ${A_t}$, as:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;J(x, \{A_t\})=\mathbb{E}\Bigg[\sum_{t=0}^{\infty}\gamma^tR(X_t,A_t) \mid X_0=x\Bigg]&lt;/script&gt;
+
+&lt;p&gt;The optimal value functions is defined, for each $x \in \mathcal{X}$ as:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;V^{\star}(x)=\max_{\mathcal{A} }J(x,\{A_t\})&lt;/script&gt;
+
+&lt;p&gt;and verifies&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;V^{\star}(x)=\max_{a\in \mathcal{A}}\sum_{y\in \mathcal{X} }\mathbb{P}_a(x,y)[r(x,a,y)+\gamma V^{\star}(y)]&lt;/script&gt;
+
+&lt;p&gt;$x$ and $y$ represent two states which $x$ switch to $y$ through action $a$, and we call $(x, a, y)$ as a transition of Markov decision process $(\mathcal{X}, \mathcal{A}, \mathcal{P}, r)$.&lt;/p&gt;
+
+&lt;p&gt;And from above, we define the optimal Q-function, $Q^{\star}$ as:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;Q^{\star}(x, a)=\sum_{y\in \mathcal{X} }[r(x,a,y)+\gamma V^{\star}(y)]&lt;/script&gt;
+
+&lt;p&gt;We can define a contraction operator $\mathbb{H}$ which defined for a generic function: $q: \mathcal{X} \times \mathcal{A} \rightarrow \mathbb{R}$ as:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;(\mathbb{H}(x,a)=\sum_{y\in \mathcal{X} }\mathbb{P}_a(x,y)[r(x,a,y)+\gamma \max_{b\in \mathcal{A} }q(y,b)])&lt;/script&gt;
+
+&lt;p&gt;And the meaning of construction operator can be intrepreted as follow:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\Vert \mathbb{H}q_1 - \mathbb{H}q_2 \Vert_{\infty} \le \Vert q_1 - q2\Vert_{\infty}&lt;/script&gt;
+
+&lt;p&gt;and we can prove it:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{align}\Vert \mathbb{H}q_1 - \mathbb{H}q_2 \Vert_{\infty} &amp;= \max\Bigg\vert \sum_{y\in\mathcal{X} }[r(x,a,y)+\gamma \max_{b\in \mathcal{A} }q_1(y, b) - r(x,a,y) + \gamma\max_{b\in \mathcal{A} }q_2(y,b)]\Bigg\vert \\ &amp;=\max_{x,a}\gamma \Bigg\vert \sum_{y\in \mathcal{X} }\mathbb{P}_a(x,y)[\max_{b\in \mathcal{A} }q_1(y,b)-\max_{b\in \mathcal{A} }q_2(y,b)] \Bigg\vert  \\  &amp;\le\max_{x,a}\gamma \sum_{y\in \mathcal{X} }\mathbb{P}_a(x,y)\Bigg\vert \max_{b\in\mathcal{A} }q_1(y,b)-\max_{b\in\mathcal{A} }q_2(y,b) \Bigg\vert  \\  &amp;\le \max_{x,a}\gamma \sum_{y\in \mathcal{X} }\mathbb{P}_a(x,y)\max_{z,b}\vert q_1(z,b)-q_2(z,b) \vert \\  &amp;=\max_{x,a} \gamma \sum_{y\in \mathcal{X} }\mathbb{P}_a(x,y)\Vert q_1-q_2 \Vert_{\infty}  \\  &amp;=\gamma\Vert q_1 - q_2\Vert_{\infty} \end{align} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;Back to the first formula at this block, as we see, if we wann $Q$-function converge, then we need promise that $\alpha(r+\gamma\max_{a}Q(S_{t}, a) - Q(S_{t+1}, a_{t+1}))$ should converge. So, it the key of convergence.&lt;/p&gt;
+
+&lt;p&gt;Let $F_t(x,a)=r(x,a,y)+\gamma\max_{b\in\mathcal{A} }Q_t(y, b) - Q^{\star}(x, a)$, so we have:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{align}\mathbb{E}[F_t(x,a) \mid \mathcal{F}_t] &amp;=\sum_{y\in \mathcal{X} }\mathbb{P}_a(x,y)r(x,a,y)+\gamma\max_{b\in\mathcal{A} }Q_t(y, b) - Q^{\star}(x, a)] \\ &amp;= (\mathbb{H}Q_t)(x,a)-Q^{\star}(x,a)\end{align} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;as we mentioned before, the operator $\mathbb{H}$ si a constraction operator, so we can rewrite the second item $Q^{\star}$ as $\mathbb{H}Q^{\star}$, and then we have:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\mathbb{E}[F_t(x,a) \mid \mathcal{F}_t]=(\mathbb{H}Q_t)(x,a)-(\mathbb{H}Q^{\star})(x,a)&lt;/script&gt;
+
+&lt;p&gt;If we use the prove process above, we can get a conclusion easily:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\Big\Vert\mathbb{E}[F_t(x,a) \mid \mathcal{F}_t]\Big\Vert=\Big\Vert(\mathbb{H}Q_t)(x,a)-(\mathbb{H}Q^{\star})(x,a)\Big\Vert_{\infty} \le \gamma\Vert Q_t-Q^{\star} \Vert_{\infty}&lt;/script&gt;
+
+&lt;p&gt;So far, we have proved the convergence of Q-learning, also Double Q-learning.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;References&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;&lt;a href=&quot;https://papers.nips.cc/paper/3964-double-q-learning&quot;&gt;Double Q-learning&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;http://users.isr.ist.utl.pt/~mtjspaan/readingGroup/ProofQlearning.pdf&quot;&gt;Convergence of Q-learning&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;em&gt;if you have some questions, please contact me, especially the approach e-mail&lt;/em&gt;&lt;/p&gt;
+</description>
+        <pubDate>Tue, 14 Nov 2017 00:20:00 +0800</pubDate>
+        <link>http://kornbergfresnel.github.io/2017/11/Prove-of-Double-Q-learning/</link>
+        <guid isPermaLink="true">http://kornbergfresnel.github.io/2017/11/Prove-of-Double-Q-learning/</guid>
+        
+        <category>machine-learning</category>
+        
+        <category>reinforcement-learning</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>Temporal-Difference Learning</title>
+        <description>&lt;p&gt;TD learning是对Monte Carlo和DP算法的综合，像Monte Carlo一样属于一种Modle Free算法，即不需要对环境模型有一个具体的认识（比如需要知道状态转移的Markov决策过程）；同时也像DP一样属于一种迭代更新算法。也许这个表达式可以更容易地帮助理解：&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;V(S_t) \leftarrow V(S_t) + \alpha[R+\gamma V(S_{t+1})-V(S_t)]&lt;/script&gt;
+
+&lt;p&gt;其中 $V(S_t)$ 表示在 $t$ 时刻状态为 $S$ 的 state value，在Monte Carlo里面，$V(S)$ 的估计通常采用 &lt;em&gt;first visit&lt;/em&gt; 进行，以保证估计过程的 &lt;em&gt;unbias&lt;/em&gt; 特性。从公式角度来看，和Monte Carlo唯一的区别就是把原来的 $G_t$ 改成了基于下一时刻 state value 的估计 $V(S_{t+1})$ 得到的 $V’(S_t)$。下面是对TD(0)的算法描述：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/td0.png&quot; width=&quot;50%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;这里有这么一个问题，虽然从递归的性质来看，逻辑关系没有错误，但是所有的 $V(S_t)$ 的预测都是基于对 $V(S_{t+1})$ 预测的预测，假设对 $V(S_{t+1})$ 的预测有bias，怎么就能保证 $V(S_t)$ 的预测的偏差不会出现累积效应，或者说越来越偏离真实值？&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;TD算法的优点&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;TD算法和DP以及Monte Carlo相比，首先的优点就是计算空间小，达到optimal的时间短，以及model-free。尤其是在有些长episode场景中，由于Monte Carlo需要在每个episode结束的时候才开始进行state value或者action value的更新，那么达到收敛的时间花费显然要高，相比TD的step by step更新就很cost。&lt;/p&gt;
+
+&lt;p&gt;当然到这里为止还是没有解决上面那个问题，实际试验结果显示TD确实能够像Monte Carlo那样收敛到最优值，但没有给出实际的数学证明（所以这里先埋个坑，过段时间再来填）&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;TD(0)的最优性&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;在学习率 $\alpha$ 的值足够小的情况下，batch TD能够收敛一个最优值，同时不依赖于 $\alpha$ 的取值，在相同的条件下，Monte Carlo也可以收敛到一个最优值，当然这两个值不一定相同。因为两者的优化目标是不一样的，Monte Carlo通过做出和训练集相比均方误差最小的值估计来逼近最优，而TD算法是通过对Markov决策的最大似然估计来逼近最优解。举个例子：这里有8组episode的抽样模拟结果：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/example64.png&quot; width=&quot;50%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;接下来分别使用TD和Monte Carlo来对两种状态的 $V$ 进行估计，显然 $V(B)$ 的值很好算，在两种算法的情况下都是 $3 \over 4$，而对状态 $A$ 的state value估计却有两种情况，在Monte Carlo里面，$V(A)=0$，在TD里面 $V(A)={3 \over 4}$，然而实际的状态转移情况是：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/example642.png&quot; width=&quot;50%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;两种估值都没有错，因为都能够控制从A走到B，Monte Carlo保证了在训练集上的error最小（实际上这里没有误差），而TD虽然在训练集上的误差要比Monte Carlo大，但是在将来的情况表现得会比Monte Carlo的预测要好。&lt;/p&gt;
+
+&lt;p&gt;这里接入有关TD(0)的几种算法&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Sarsa：On-policy TD(0) control&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Sarsa在保证epsiode的时间有限的情况下，能够以1.0的概率收敛到最优的policy和action value&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/sarsa_td.png&quot; width=&quot;50%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Q-learning：Off-policy TD(0) control&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/q_learning_td.png&quot; width=&quot;50%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Q-learning和Sarsa的不同点可以这样来理解，前者总是通过选取action value最大的动作来执行，后者通过可能通过一个更安全的动作来执行，因为每次动作的选取都是基于policy的。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Expected Sarsa&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;和普通的Sarsa相比，该算法的特点是弱化了由于policy的random特性而导致的方差过大，同时计算量也上升了&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;Q(S_t, A_t) \leftarrow Q(S_t,A_t)+\alpha[R_{t+1}+\gamma E[Q(S_{t+1},A_{t+1}) \mid S_{t+1}]-Q(S_t,A_t)]&lt;/script&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;Q(S_t, A_t) \leftarrow Q(S_t,A_t)+\alpha[R_{t+1}+\gamma \sum_a{\pi(a\mid S_{t+1})Q(S_{t+1},A_{t+1})}-Q(S_t,A_t)]&lt;/script&gt;
+
+&lt;p&gt;一般的Q-learning有一个缺点，假设现在状态 $S$ 的最优action value真实值是0，而它目前的所有action估计值有正有负有零，从其预测更新的规则来看，每次都是选取最大的预测值，那么这样一来就会导致整体出现一个正向bias。有一种解决方法，通过将动作预测和执行分开来做，能够保证这个过程是无偏估计。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Double Q-learning&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;假设现在有两套policy的参数，一套 $Q_1$ 用来进行action预测，一套 $Q_2$ 用来进行动作的执行，也就是进行当前state的action value更新，那么假设用来更新的动作 $A^*=\arg \max_a Q_1(a)$，那么&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;Q(s,a)=Q(s,a)+\alpha[R+\gamma Q_2(s&#39;,\arg \max_aQ_1(s&#39;,a))-Q(s,a)]&lt;/script&gt;
+
+&lt;p&gt;还要说明一下的是其中一个 $Q$ 是作为target来考虑的，也就是其中一个被当作最新的policy，用来产生 $A^*$ 的那套参数便是最新的。那么可以这样来理解，我用最新的一套policy产生了一个action，而这个action由于迭代关系又是与上一次的policy有关的，也就相当于满足老的policy的分布，而这个分布暂时还在另一个Q里面，所以现在把这个action拿给另一个Q来预测更新就是无偏的。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/double_q.png&quot; width=&quot;50%&quot; /&gt;&lt;/p&gt;
+</description>
+        <pubDate>Fri, 03 Nov 2017 02:00:00 +0800</pubDate>
+        <link>http://kornbergfresnel.github.io/2017/11/Temporal-Difference-Learning/</link>
+        <guid isPermaLink="true">http://kornbergfresnel.github.io/2017/11/Temporal-Difference-Learning/</guid>
+        
+        <category>machine-learning</category>
+        
+        <category>reinforcement-learning</category>
+        
+        <category>sutton-book</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>SILENCE</title>
+        <description>&lt;p&gt;​&lt;/p&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;Yeah, I&#39;d rather be a lover than a fighter&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;Cause all my life, I&#39;ve been fighting&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;Never felt a feeling of comfort&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;All this time, I&#39;ve been hiding &lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;And I never had someone to call my own, oh nah&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I&#39;m so used to sharing&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;Love only left me alone&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;But I&#39;m at one with the silence&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I found peace in your violence&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;Can&#39;t tell me there&#39;s no point in trying&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I&#39;m at one, and I&#39;ve been quiet for too long&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I found peace in your violence&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;Can&#39;t tell me there&#39;s no point in trying&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I&#39;m at one, and I&#39;ve been silent for too long&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;And I&#39;ve been quiet for too long&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;And I&#39;ve been quiet for too long&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I&#39;ve been quiet for too long&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I&#39;ve been quiet for too long&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I&#39;m in need of a savior, but I&#39;m not asking for favors&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;My whole life, I&#39;ve felt like a burden&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I think too much, and I hate it&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I&#39;m so used to being in the wrong, I&#39;m tired of caring&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;Loving never gave me a home, so I&#39;ll sit here in the silence&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I found peace in your violence&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;Can&#39;t tell me there&#39;s no point in trying&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I&#39;m at one, and I&#39;ve been quiet for too long&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I found peace in your violence&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;Can&#39;t tell me there&#39;s no point in trying&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I&#39;m at one, and I&#39;ve been silent for too long&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I found peace in your violence&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;Can&#39;t tell me there&#39;s no point in trying&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;center&gt;I&#39;m at one, and I&#39;ve been quiet for too long&lt;/center&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+
+&lt;p&gt;​&lt;/p&gt;
+</description>
+        <pubDate>Thu, 02 Nov 2017 23:30:00 +0800</pubDate>
+        <link>http://kornbergfresnel.github.io/2017/11/SILENCE/</link>
+        <guid isPermaLink="true">http://kornbergfresnel.github.io/2017/11/SILENCE/</guid>
+        
+        
+      </item>
+    
+      <item>
+        <title>Some Algorithms For MARL</title>
+        <description>&lt;p&gt;&lt;strong&gt;Deep Repeated Update Q-Network&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;It tries to address an issue in the way Q-learning estimate the value of an action. Ideally, if an agent could execute every possible action in parallel but identical environments at each time step, then information about all possible actions could be gathered in order to update every action value simultaneously. From this conjecture, RUQL proposes that an &lt;strong&gt;action value must be updated inversely proportional to the probability of the action selected&lt;/strong&gt; given the policy that is being followed. Thus when an action with low probability is selected, the corresponding action-value is updated more than once. By contrast, if an action with high probability is selected, then the action-value may be updated only once. Algorithm 5 provides an initial way to formalize this intuition, while this algorithm may become unbounded in computation time as $\pi(s, a) \to 0$.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/ruql.png&quot; width=&quot;45%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/ruql2.png&quot; width=&quot;45%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The implement of alrorithm-6 states that if an action has a very high chance of being selected then $1 \over {\pi(s, a)} \to 1$ and standard Q-Learning is recovered. On the other hand when an action is rarely selected then not only the action-value is updated inversely proportional but also the new estimates carry more weight.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Deep Loosely Coupled Q-Network&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Assumes that an agent is not capable of observing the full information content of the environment. Therefore an agent has to learn under which circumstances it has to act independently adn when in coordination with other agents or the information they provide. This alrogithm makes explicit considerations about multi-agents.&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;agent independence&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;An independence degree $\epsilon^k_i \in [0,1]$ for agent $i$ in state $s^k_i$ determines the probability of an agent carrying on an action independently. The closer $\epsilon^k_i$ is to the upper bound, the more certainty there is for an agent to act based on its individual information regradless of the presence of other agents. We determining independence degree with the negative outcomes it receives, many methods you can use, such as Gaussian-like diffusion distribution.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Decentralized Markove Decision Processes&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;In multi-agent domains, an agent may not only depend on the information it has gathered about its environment. It will also be influenced by the choices of other agents. Naturally, these problems are partially observable. Decentralized Partially Observable Markov Decision Processes (Dec-POMDP) (Bernstein et al., 2000) have been developed as an extension of POMDPs to address situations where agents can exploit levels of coordination among them.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Overoptimistic estimation in Q-Learning&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Double Q-network, the study addresses it by decoupling the selection and the evaluation of actions. In Sorokin et al.(2015), they extend DQN to LSTM networks to present areas of attention. And other work extends beyond the application of deep neural networks to Q-learning as it is the case in Lillicrap et al.(2015), where they present an algorithm that generalizes to continuous spaces using deterministic policy gradients.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Multi-Agent Reinforcement Learning&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;As we have seen, reinforcement learning provides an alternative to deal with the constantly changing environments. RL agents learn from experience by observing their environment and the effect of their actions. Nonetheless the transition from single agent RL to multi-agent RL offers a series challenges.&lt;/p&gt;
+
+&lt;p&gt;The reward that the agent may receive will not only depend on its interaction with a passive environment, In multi-agent environments, it is intertwined with the actions made by the others. Defining a goal becomes complex because the rewards are correlated and cannot simply be maximized independently, cause it should concern the global environment.&lt;/p&gt;
+
+&lt;p&gt;One of the biggest open issues in multi-agent environments is how to deal with non-stationarity. A policy is optimal and stationary when it is the best possible policy and it remains fixed over time. Due to the dependence of the reward function on the actions taken by other agents, good policies at a given point could not be so in the future. They are only good policies in relation to what the other agents have learned at the time the policy is applied. The exploration-exploitation dilemma becomes even more relevant under these settings. Information gathering is not only important initially but has to be done with certain recurrence while at the same time being careful that it does not destabilize the agent or agents when an appropriate coordination is required.&lt;/p&gt;
+
+&lt;p&gt;In practice, convergence in most complex multi-agent problems tends to be empirically verified. In some cases single RL algorithms such as Q-Learning have been used with no modification (Claus and Boutilier, 1998; Crites and Barto, 1998; Tan, 1993). However several extensions to a multi-agent domain have been proposed for cooperative tasks (Kapetanakis and Kudenko, 2005; Lauer and Riedmiller, 2000; Littman, 2001b), competitive tasks (Littman, 1994) as well as mixed tasks (Tesauro, 2003). There has two extensions to Q-Learning are presented. Each of them tries to address a concern or weakness of Q-Learning when dealing with multi-agent or non-stationary tasks. These two algorithms will serve as the basis of novel extensions to large state spaces.&lt;/p&gt;
+
+</description>
+        <pubDate>Fri, 27 Oct 2017 19:15:00 +0800</pubDate>
+        <link>http://kornbergfresnel.github.io/2017/10/Some-Algorithms-For-MARL/</link>
+        <guid isPermaLink="true">http://kornbergfresnel.github.io/2017/10/Some-Algorithms-For-MARL/</guid>
+        
+        <category>machine-learning</category>
+        
+        <category>reinforcement-learning</category>
+        
+        <category>algorithms</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>Monte Carlo Methods</title>
+        <description>&lt;h2 id=&quot;off-policy-prediction-via-importance-sampling&quot;&gt;Off-policy Prediction via Importance Sampling&lt;/h2&gt;
+
+&lt;p&gt;&lt;em&gt;To be continued…&lt;/em&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;off-policy-monte-carlo-control&quot;&gt;Off-policy Monte Carlo Control&lt;/h2&gt;
+
+&lt;p&gt;In off-policy method, estimating the value of a policy and controling are separated, it is the mainly difference between on-policy and off-policy. In off-policy, we separate all possible policies into &lt;em&gt;behavior policy&lt;/em&gt; and &lt;em&gt;target policy&lt;/em&gt;. The later is inclued in the former, while it is the real policy that is evaluated and improved. For gurantee this rule which &lt;em&gt;target policy&lt;/em&gt; should has the chance to visit all &lt;em&gt;behavior policy&lt;/em&gt;, we need make a promise that the probability of all &lt;em&gt;behavior policy&lt;/em&gt; should larger than zero. We define &lt;em&gt;behavior policy&lt;/em&gt; as policy $b$, and &lt;em&gt;target policy&lt;/em&gt; as policy $\pi$, then the policy $b$ may be $\epsilon$-soft greedy policy.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/off_policy_monte_carlo.png&quot; width=&quot;40%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;A potential problem is that this method learns only from the tails of episodes, when all of the remaining actions in the episode are greedy. If nongreedy actions are common, then learning will be slow, particularly for states appearing in the early portions of long episodes. Potentially, this could greatly slow learning. There has been insufficient experience with off-policy Monte Carlo methods to assess how serious this problem is. If it is serious, the most important way to address it is probably by incorporating temporal-difference learning, the algorithmic idea developed in the next chapter. Alternatively, if γ is less than 1, then the idea developed in the next section may also help significantly.&lt;/p&gt;
+
+&lt;h2 id=&quot;discounting-aware-importance-sampling&quot;&gt;Discounting-Aware Importance Sampling&lt;/h2&gt;
+
+&lt;p&gt;If we consider discounting reward in a long episode, then there maybe some problem. Suppose discounting index $\gamma=0$, and the length of episode is 100, then if we  use importance sampling as the old form:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\rho={ {\pi(A_0 \mid S_0)\pi(A_1 \mid S_1)…\pi(A_{99} \mid S_{99})} \over {b(A_0 \mid S_0)b(A_1 \mid S_1)…b(A_{99} \mid S_{99})} }&lt;/script&gt;
+
+&lt;p&gt;While the return from time 0 will then be $G_0=R_1$. In ordinary importance sampling, the return will be scaled by the entire product, but it is really only necessaryto scale by the first factor, by $\rho={ {\pi(A_0 \mid S_0)} \over {b(A_0 \mid S_0)} }$. The other 99 factors are irrelevant. They do not change the expected update, but they add &lt;strong&gt;enormously to its variance&lt;/strong&gt;. In some cases they could even make the variance infinite. So, how we can avoid this bad condition?&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;degree of partial termination&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;The essence of the idea is to think of discounting as &lt;em&gt;determining a probability of termination&lt;/em&gt; or, equivalently, a degree of partial termination. That is if we terminate at the first step, then return $G_0$; if terminate after two steps, then to the degree of $\gamma(1-\gamma)$, producing a return of $R_1 + \gamma R2$. The degree of termination on the third step is thus $(1-\gamma)\gamma^2$, with the $\gamma^2$ reflecting that termination did not occur on either of the first two steps. The partial returns here are called flat partial returns:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\overline{G}=R_{t+1} + R_{t+2}+…+R_{h}, 0 \le t \lt h \le T&lt;/script&gt;
+
+&lt;p&gt;The conventional full return Gt can be viewed as a sum of flat partial returns as suggested above as
+follows:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/degree_formula.png&quot; width=&quot;50%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Then we define the new ordinary importance-sampling and weighted important-sampling as follow:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/new_ordinary_formula.png&quot; width=&quot;50%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/new_weighted_formula.png&quot; width=&quot;50%&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;per-reward-importance-sampling&quot;&gt;Per-Reward Importance Sampling&lt;/h2&gt;
+
+&lt;p&gt;As I writed in the former text, in importance sampling, if we concered about only the reward at time $t$, then the $\pi_{t+k} \over b_{t+k}$ after time $t$ are irrelevant. And all the other ratios are independent random variables whose expected value is one:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;E_{A_k \thicksim b} \lgroup { {\pi(A_k | S_k)} \over {b(A_k | S_k)} } \rgroup=\sum_a{b(a|S_k){ {\pi(a|S_k)} \over {b(a|S_k)} } }=\sum_a{\pi(a|S_k)}=1&lt;/script&gt;
+
+&lt;p&gt;so, we can make a conclusion: $E[\rho_{t:T-1}R_{t+1}]=E[\rho_{t:t}R_{t+1}]$. Braodcast to all $R_k$, then the formula of $G_t$ is:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\rho_{t:t}R_{t+1}+\gamma\rho_{t:t+1}R_{t+2}+\gamma^2\rho_{t:t+2}R_{t+3}+…+\gamma^{T-t-1}\rho_{t:T-1}R_T&lt;/script&gt;
+
+&lt;p&gt;It is also a unbias estimator as the ordinary importance sampling, we named it as &lt;em&gt;pre-reward importance sampling&lt;/em&gt;. Is there a per-reward version of weighted importance sampling? This is less clear. So far, all the estimators that have been proposed for this that we know of are not consistent (that is, they do not converge to the true value with infinite data).&lt;/p&gt;
+
+&lt;p&gt;​			
+​		
+​&lt;/p&gt;
+</description>
+        <pubDate>Fri, 27 Oct 2017 12:10:00 +0800</pubDate>
+        <link>http://kornbergfresnel.github.io/2017/10/Monte-Carlo-Methods/</link>
+        <guid isPermaLink="true">http://kornbergfresnel.github.io/2017/10/Monte-Carlo-Methods/</guid>
+        
+        <category>machine-learning</category>
+        
+        <category>reinforcement-learning</category>
+        
+        <category>sutton-book</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>Multi-Step Boostrapping</title>
+        <description>&lt;p&gt;&lt;strong&gt;N-Step TD Prediction&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;An important property of n-step returns is that their expectation is guranteed to be a better estimate of $v_{\pi}$ than $V_{t+n-1}$ is, in a worst-state sense. That is, the worst error of the expected n-step return is guaranteed to be less than or equal to $\eta^n$ times the worst error under $V{t+n-1}$: $\max_{s} \mid E_{\pi}[G_{t:t+n} \mid S_t=s]-v_{\pi}(s)\mid \le \eta^n \max_{s} \vert V_{t+n-1}(s)-v_{\pi}(s) \vert$. This is called the &lt;em&gt;error reduction property&lt;/em&gt; of n-step returns.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;N-Step Sarsa&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;How can n-step methods be used not just for prediction, but for control? And in this section shows how n-step methods can be combined with Sarsa in straightforward way to produce an on-policy TD control method, we call this n-step Sarsa, and the previous chapter we henceforth call one-step Sarsa or Sarsa(0).&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;N-Step Off-policy Learning by Importance Sampling&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Suppose that we have two policies $\pi$ and $b$, the former is &lt;em&gt;greedy policy&lt;/em&gt; while the later is &lt;em&gt;$\epsilon$-greedy policy&lt;/em&gt;, then we want use data from policy-b in policy-$\pi$, so we need take into account the difference between the tow policies by using their relative probability of taking the actions that were taken. For example, to make a simple off-policy version of n-step TD, the update for time $t$ (actually made at time $t + n$) can simply be weighted by $\rho_{t:t+n-1}$:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;V_{t+n}(S_t) = V_{t+n-1}(S_t) + \alpha \rho_{t:t+n-1}[G_{t:t+n} - V_{t+n-1}(S_t)]&lt;/script&gt;
+
+&lt;p&gt;The importance sampling ratio&lt;/p&gt;
+</description>
+        <pubDate>Mon, 23 Oct 2017 13:45:00 +0800</pubDate>
+        <link>http://kornbergfresnel.github.io/2017/10/Multi-Step-Bootstrapping/</link>
+        <guid isPermaLink="true">http://kornbergfresnel.github.io/2017/10/Multi-Step-Bootstrapping/</guid>
+        
+        <category>machine-learning</category>
+        
+        <category>reinforcement-learning</category>
+        
+        <category>sutton-book</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>Multi-armed Bandits</title>
+        <description>&lt;blockquote&gt;
+  &lt;p&gt;将强化学习和其他学习方式区分开来的一个重要特征是：RL通过评估选取动作而不是指导agent应该执行哪些正确的动作，但其实将这两种方式融合在一起也是很有趣的。&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h2 id=&quot;k-armed-bandit&quot;&gt;$k$-armed Bandit问题&lt;/h2&gt;
+
+&lt;p&gt;比如你需要在 $k$ 个不同的action中重复做出选择，在每个action决定作出后，你都会得到服从固定概率分布的reward，你的目标是最大化整个学习过程中的reward。为了方便后面的描述，我们做出如下定义：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;$A_t$: the action selected on time step $t$&lt;/li&gt;
+  &lt;li&gt;$R_t$: the corresponding reward of $At$&lt;/li&gt;
+  &lt;li&gt;$q_*(a)$: the value then of an arbitrary aciton $a$&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;其中 $q_*(a)=E[R_t \mid A_t=a]$&lt;/p&gt;
+
+&lt;p&gt;假设我们事先不知道每个动作的reward积累值，其估计值表示为：$Q_t(a) = q_*(a)$。&lt;/p&gt;
+
+&lt;p&gt;如果我们在整个学习过程中都维护这些动作的估计值，便可在每个时刻都拿到当时状态的最大估计，这是一种贪心策略。当agent基于以往的经验选择其中一个action时，将之称为一次实践。当然如果放弃使用这种贪婪方式，比如随机选择一个action，那么我们将其称为一次探索（或者学习），因为这样的选择方式能够更新action对应的Q值。在强化学习中，这样的探索方式是很重要的，我们需要考虑在某个状态下，选择不一样的动作可能导致最后的反馈结果会比之前的最优方式更好。&lt;/p&gt;
+
+&lt;p&gt;那么问题来了，我们要如何平衡好这个模型中的学习和实践的时间呢？先来看两种不同的值估计。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Action-value Methods&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;如果通过平均水平来做出action的值估计，那么一个action在t时刻之前奖励的平均估计表示为：&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;Q_t(a) = \frac{t时刻前a动作的奖励和}{t时刻前执行a动作的总次数}  = \frac{\sum_{i=1}^{t-1}R_i \cdot 1_{A_i=a} } {\sum_{i=1}^{t-1}1_{A_i=a} }&lt;/script&gt;
+
+&lt;p&gt;其中，如果分母是0的话，我们将其定义估计值定义为一个默认值，比方说$Q_1(a)=0$。当分母趋于无限时，根据大数定律，$Q_t(a)$ 将收敛到 $q_*(a)$。&lt;/p&gt;
+
+&lt;p&gt;在这基础上，我们接下来需要知道这些动作的估计值是如何反映到动作的选择上去的。最简单的方法当然是每次都选择估计值最大的动作了：$Q_t(A_t^*)=\max_{a}Q_t(a)$。根据这个原则，那么 $t$ 时刻的动作选择就是：&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;A_t=\arg \max_{a}Q_t(a)&lt;/script&gt;
+
+&lt;p&gt;这种贪心策略选择总是利用agent到目前为止积累的知识来最大限度地立即获得奖励，没有把时间花在尝试更多显然是较差的动作选择上，看看它们是否真的会更好。这里有一个简单的策略：给定一个固定的概率 $\epsilon$，代表随机选择动作的概率，也就是相当于增加了模型学习的机会，我们把这样的方式称为 $\epsilon$-greedy。从概率上讲，这样的方式也近似地保证了所有的 $Q_t(a)$ 都能够收敛到 $q_*(a)$。&lt;/p&gt;
+
+&lt;p&gt;来看看贪心方式和 $\epsilon$-greedy 方法的区别&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/sb_ch2_greedy.png&quot; width=&quot;40%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;显然 $\epsilon$-greedy 方法要好于greedy方法，但这是建立在 $q_*(a)$ 的概率分布满足存在一定方差的情况（当然实际情况也是）。如果在某些情况下其分布的方差为0，也就是说，只要使用贪心的方法，每次选择的action都会是保证value最优，在这种情况下，显然greedy要更好了。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Incremental Implementation&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;使用直接使用平均值来进行value的估计，可能会面临一个计算量大的问题，尤其是学习系统中的aciton和时间规模都比较庞大的时候。&lt;/p&gt;
+
+&lt;p&gt;假设让 $R_i$ 表示在第 $i$ 次选择某个动作的奖励值，让 $Q_n$ 表示这个动作在被选择 $n-1$次之后的估计值，那么我们可以将 $Q_n$ 表示为：&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;Q_n = { {R_1 + R_2 + … + R_{n - 1} } \over {n - 1} }&lt;/script&gt;
+
+&lt;p&gt;如果直接这样计算估计值，那么我们需要维护关于每个动作的至少 $n$ 个不同的激励值，我们可以做出如下化简：&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;Q_{n + 1} = { 1 \over n } \sum_{i=1}^nR_i={1 \over n}(R_n + \sum _{i=1}^{n - 1}R_i)={1 \over n}(R_n + (n-1)Q_n)=Q_n+{1 \over n}[R_n - Q_n]&lt;/script&gt;
+
+&lt;p&gt;这样的话，我们只需要维护前一次的估计值并记录已经选择过当前动作的次数，我们可以对上式进行进一步的抽象化（更新估计值的规则）&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;NewEstimate \leftarrow OldEstimate + StepSize [Target - OldEstimate]&lt;/script&gt;
+
+&lt;p&gt;那么使用增量式实现的bandit算法伪代码如下（$bandit(a)$ 表示选择某个动作 $a$ 能够得到的reward）&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/sb_ch2_simple_bandit.png&quot; width=&quot;50%&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;section&quot;&gt;跟踪非稳定问题&lt;/h2&gt;
+
+&lt;p&gt;以上两种方法在稳定环境状态问题下能够比较好的发挥作用，但我们经常遇见的强化学习问题都属于非稳定环境问题，也就是agent面临的学习场景会时常改变，在这些情况下，我们对即时或者说最近的reward的关注要多于长时的reward。&lt;/p&gt;
+
+&lt;p&gt;一个最常用的方法是使用一个常量step-size，也就是下面的 $\alpha$ 参数&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;Q_{n+1}=Q_n + \alpha[R_n-Q_n]&lt;/script&gt;
+
+&lt;p&gt;其中 $\alpha \in (0,1]$，那么新的 $Q_{n+1}$ 可以改成：&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;Q_{n+1}=(1-\alpha)^nQ_1+\sum_{i=1}^n\alpha(1-\alpha)^{n-i}R_i&lt;/script&gt;
+
+&lt;p&gt;不难发现其实：$(1-\alpha)^n+\sum_{i=1}^n\alpha(1-\alpha)^{n-i}=1$。从统计学方面讲，考虑到 $1-\alpha$ 值小于1，其指数越大，导致对应的 $R_i$ 的权重越低，而且随着 $n$ 的逐渐增大，离当前动作越远的reward对其估计值的贡献越小，而当前动作对应的reward值的贡献越大，这样便达到了之前要求更多关注最近reward的要求。&lt;/p&gt;
+
+&lt;p&gt;有时候逐步改变学习步长是有好处的，因为那样能够保证收敛（虽然不能保证动作集中的所有action对应的估计都收敛）&lt;/p&gt;
+
+&lt;center&gt;$\sum_{n=1}^\infty{\alpha_n(a)}=\infty $ and $\sum_{n=1}^\infty{\alpha_n^2(a) \lt \infty}$&lt;/center&gt;
+
+&lt;p&gt;当学习步长为常量时，第二个条件不满足，也就是说值估计永远都没法收敛，但是对于最近收到的奖励值，其估计值会因此不断调整。这也就想我们之前提出的问题一样，在变化的学习环境中，我们的估计值显然也应当不停变化。&lt;/p&gt;
+
+&lt;p&gt;另外，一系列满足上面收敛条件的学习参数经常会收敛得比较慢，而且还需要考虑进行一定程度的调参工作才能使得最终的结果令人满意。虽然这种方法经常会在理论中出现，但是实际应用中我们几乎不会使用。&lt;/p&gt;
+
+&lt;h2 id=&quot;optimistic-initial-value&quot;&gt;Optimistic Initial Value&lt;/h2&gt;
+
+&lt;p&gt;之前提到的两种方法，似乎都在一定程度上对初始的动作值估计 $Q_1(a)$ 有一定程度的依赖。但是在样本平均方法中，也就是第一种方法，只要所有的动作至少发生一次，这种初始值估计偏差就会消失，而在第二种方法，也就是保持学习步长为常量的那种方法中，这种偏差会一直存在，即使随着学习时间的延长，这种偏差带来的影响越来越小。&lt;/p&gt;
+
+&lt;p&gt;有趣的是，实际情况这种估计偏差其实是很有用的。它的一个负面影响就是动作值的初始化变得很重要；其优点在于，它提供了一种简单的方法来提供一些关于可以预期的奖励水平的先验知识，比如你可以将所有的动作值初始化为0。这里我们让所有的 $Q$ 估计为+5，表示积极的reward反馈，这样的初始化能够鼓励agent进行新动作的尝试，也就是探索学习。根据我们的action-value方法，一开始被选中的action的reward在新一轮优化中会比初始值要小，所以agent会在新的state上选择新的动作进行尝试。结果就是在 $Q$ 函数收敛之前，所有的动作都会被多次尝试，这也就能够在一定程度上保证所有的 $Q$ 估计最终能接近其真实的值。&lt;/p&gt;
+
+&lt;p&gt;下面这张图将此方法和普通的 $\epsilon$-greedy 方法作了对比，可以看到，虽然在前期我们的optimistic-initial方法表现得比 $\epsilon$-greedy 方法要差，这是因为前期我们的optimistic-initial方法尝试探索的次数比较多，而到了后期，其表现明显好于后者，因为到了后期，该方法的探索次数会越来越少。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/sb_ch2_optimistic_value.png&quot; width=&quot;40%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;这种方式在学习场景固定的情况下是一种有效的方式，但在场景变化的情况下就不行了，这很显然。&lt;/p&gt;
+
+&lt;h2 id=&quot;upper-confidence-bound-action-selection&quot;&gt;Upper-Confidence-Bound Action Selection&lt;/h2&gt;
+
+&lt;p&gt;探索学习方式在强化学习中属于很重要的一种方式，如果能根据其潜在优化能力并考虑估计值和最大值的近似程度，以及这些估计的不确定性来进行非贪婪式地选择动作，那么就很好。比如一个有效的挑选方式：&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;A_t=\arg\max_a[Q_t(a)+c\sqrt{ {\log t} \over {N_t(a)} }]&lt;/script&gt;
+
+&lt;p&gt;其中 $N_t(a)$ 表示动作a在t时间内被选中的次数，且 $c \gt 0$ 控制着探索学习的深度。如果 $N_t(a)=0$，那么这个动作就被视为已经满足最大值条件，即：$A_t=a$。&lt;/p&gt;
+
+&lt;p&gt;我们可以这样来理解这个式子：$N_t(a)$ 随着动作被选取的次数增加，导致上限置信度（UCB）越来越小。另一方面，在分子中出现不确定性估计值 $\log t$ 随着时间的推移，使得UCB越来越大，但增长越来越小。随着时间的流逝，所有动作最终都将被选中，对于具有较低价值估计或已经被选择更多次的动作，其等待时间越长，因此被选择频率越低。&lt;/p&gt;
+
+&lt;p&gt;UCB在10-armed testbed 上的结果如图所示，UCB经常会表现得比较良好，但随着 $\epsilon$-greedy 参数的修改，可能会比其表现得要差，而且越来越难以超越更一般的强化学习方法。 其中一个问题在于处理非平稳问题上需要有比之前提出的方法更复杂的东西。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/sb_ch2_UCB.png&quot; width=&quot;40%&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;gradient-bandit-algorithms&quot;&gt;Gradient Bandit Algorithms&lt;/h2&gt;
+
+&lt;p&gt;我们考虑假设对于某个动作具有一定的偏爱度 $H_t(a)$，偏爱度越高，说明选择这个动作的可能性就越大，但偏爱度从reward角度来看，没有什么联系，只有一个动作相对于另一个动作的相对偏好很重要；如果我们对所有偏好度都添加1000，则对于根据soft-max分布（即吉布斯或玻尔兹曼分布）确定的动作概率没有影响，如下：&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;Pr\{A_t=a\}=\frac{ e^{H_t(a)} } { \sum_{b=1}^ke^{H_t(b)} }=\pi_t(a)&lt;/script&gt;
+
+&lt;p&gt;偏好度基于随机梯度上升的更新规则如下：&lt;/p&gt;
+
+&lt;center&gt;$H_{t+1}(A_t)=H_t(A_t)+\alpha(R_t-\overline{R_t})(1-\pi_t(A_t))$ and $H_{t+1}(a)=H_t(a)-\alpha(R_t-\overline{R_t})\pi_t(a),\forall a \neq A_t $&lt;/center&gt;
+
+&lt;p&gt;其中 $\overline{R_t} \in R$ 表示 $t$ 时间内平均reward，如果当前的reward水平小于平均基准线，那么显然其偏好度会下降。再来看看有平均值baseline和无平均值baseline的区别&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/sb_ch2_baseline.png&quot; width=&quot;40%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/sb_ch2_vs_1.png&quot; width=&quot;90%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/sb_ch2_vs_2.png&quot; width=&quot;90%&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/sb_ch2_vs_3.png&quot; width=&quot;90%&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;associative-search-contextual-bandits&quot;&gt;Associative Search (Contextual Bandits)&lt;/h2&gt;
+
+&lt;p&gt;As an example, suppose there are several different k-armed bandit tasks, andthat on each step you confront one of these chosen at random. Thus, the bandittask changes randomly from step to step. This would appear to you as a single,nonstationary k-armed bandit task whose true action values change randomly fromstep to step. You could try using one of the methods described in this chapter thatcan handle nonstationarity, but unless the true action values change slowly, thesemethods will not work very well. Now suppose, however, that when a bandit task isselected for you, you are given some distinctive clue about its identity (but not itsaction values). Maybe you are facing an actual slot machine that changes the colorof its display as it changes its action values. Now you can learn a policy associatingeach task, signaled by the color you see, with the best action to take when facing thattask—for instance, if red, select arm 1; if green, select arm 2. With the right policyyou can usually do much better than you could in the absence of any informationdistinguishing one bandit task from another.&lt;/p&gt;
+
+&lt;p&gt;This is an example of an associative search task, so called because it involves bothtrial-and-error learning in the form of search for the best actions and association ofthese actions with the situations in which they are best. Associative search tasksare intermediate between the k-armed bandit problem and the full reinforcementlearning problem. They are like the full reinforcement learning problem in that theyinvolve learning a policy, but like our version of the k-armed bandit problem in thateach action affects only the immediate reward. If actions are allowed to affect thenext situation as well as the reward, then we have the full reinforcement learningproblem. We present this problem in the next chapter and consider its ramificationsthroughout the rest of the book.&lt;/p&gt;
+</description>
+        <pubDate>Sat, 07 Oct 2017 22:44:00 +0800</pubDate>
+        <link>http://kornbergfresnel.github.io/2017/10/Multi-armed-Bandits/</link>
+        <guid isPermaLink="true">http://kornbergfresnel.github.io/2017/10/Multi-armed-Bandits/</guid>
+        
+        <category>machine-learning</category>
+        
+        <category>reinforcement-learning</category>
+        
+        <category>sutton-book</category>
+        
+        
+      </item>
+    
+  </channel>
+</rss>

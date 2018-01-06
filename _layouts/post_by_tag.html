@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+{% include head.html %}
+
+{% if page.tag %}
+    {% capture tags_content %}<i class="fa fa-tag"></i> {% endcapture %}
+    {% for data_tag in site.data.tags %}
+        {% if data_tag.slug == page.tag %}
+            {% assign tag = data_tag %}
+        {% endif %}
+    {% endfor %}
+    {% if tag %}
+        {% capture tags_content_temp %}{{ tags_content }}<a href="/tags/{{ tag.slug }}/">{{ tag.name }}</a>{% if forloop.last == false %}, {% endif %}{% endcapture %}
+        {% assign tags_content = tags_content_temp %}
+    {% endif %}
+{% else %}
+    {% assign tags_content = 'iji' %}
+{% endif %}
+
+  <body>
+    <span class="mobile btn-mobile-menu">
+        <i class="fa fa-list btn-mobile-menu__icon"></i>
+        <i class="fa fa-angle-up btn-mobile-close__icon hidden"></i>
+    </span>
+    <header class="panel-cover {% if page.layout == 'post' or page.layout == 'page' %}panel-cover--collapsed{% endif %}" style="background-image: url('/assets/images/background-cover.jpg'); max-width: 700px; width: 30%;">
+        <div class="panel-main">
+      
+          <div class="panel-main__inner panel-inverted">
+          <div class="panel-main__content">
+      
+              <a href="/#blog" title="前往 {{ site.title }} 的主页" class="blog-button"><img src="/assets/images/avatar.jpg" width="80" alt="{{ site.title }} logo" class="panel-cover__logo logo" /></a>
+              <h1 class="panel-cover__title panel-title"><a href="/#blog" title="link to homepage for {{ site.title }}" class="blog-button">{{ site.title }}</a></h1>
+              {% if site.subtitle %}
+              <span class="panel-cover__subtitle panel-subtitle">{{site.subtitle}}</span>
+              {% endif %}
+              <hr class="panel-cover__divider" />
+              <p class="panel-cover__description">{{ site.description }}</p>
+              <hr class="panel-cover__divider panel-cover__divider--secondary" />
+              
+              {% if site.welcome_message %}
+              <p class="panel-cover__description">{{ site.welcome_message }}</p>
+              {% endif %}
+              
+              <div class="navigation-wrapper">
+                <div>
+                  <nav class="cover-navigation cover-navigation--primary">
+                    <ul class="navigation">
+                      <li class="navigation__item"><a href="/#blog" title="{{site.blog_button.description}}" class="blog-button">{{site.blog_button.title}}</a></li>
+                      {% for item in site.nav %}
+                        <li class="navigation__item"><a href="{{item.url}}" target="_blank" title="{{item.description}}">{{item.title}}</a></li>
+                      {% endfor %}
+                    </ul>
+                  </nav>
+                </div>
+                
+                <div>{% include social.html %}</div>
+              </div>
+            </div>
+          </div>
+          
+          {% if site.cover_color %}
+            <div class="panel-cover--overlay cover-{{site.cover_color}}"></div>
+          {% else %}
+            <div class="panel-cover--overlay cover-disabled"></div>
+          {% endif %}
+        </div>
+    </header>
+    <div class="content-wrapper">
+        <div class="content-wrapper__inner">
+            <p style="border-bottom: 1px solid; padding-bottom: 5px">Articles by tag :{{ tags_content }}</p>
+            <div class="main-post-list">
+                {% if site.tags[page.tag] %}
+                    <ol class="post-list">
+                        {% for post in site.tags[page.tag] %}
+                            <li>
+                                <h2 class="post-list__post-title post-title"><a href="{{ post.url }}" title="访问 {{ post.title }}">{{ post.title }}</a></h2>
+                                <p class="excerpt">{{ post.content | strip_html | strip_newlines | truncate: 250 }}&hellip;</p>
+                                <div class="post-list__meta"><time datetime="{{post.date | date: date_to_xmlschema}}" class="post-list__meta--date date">{{ post.date | date: "%F"}}</time><a class="btn-border-small" href={{ post.url }}>继续阅读</a></div>
+                                <hr class="post-list__divider" />
+                            </li>
+                        {% endfor %}
+                    </ol>
+                {% else %}
+                    <p>There are no posts for this tag.</p>
+                {% endif %}
+            </div>
+
+            {% include footer.html %}
+
+            {% include external.html %}
+                
+        </div>
+    </div>
+  </body>
+</html>

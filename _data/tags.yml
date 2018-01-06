@@ -1,0 +1,26 @@
+- slug: github-pages
+  name: GitHub Pages
+  
+- slug: jekyll
+  name: Jekyll
+
+- slug: machine-learning
+  name: Machine Learning
+
+- slug: reinforcement-learning
+  name: Reinforcement Learning
+
+- slug: mathematics
+  name: Mathematics
+
+- slug: programming
+  name: Programming
+
+- slug: sutton-book
+  name: Sutton Book
+
+- slug: multi-agent
+  name: Multi-Agent
+ 
+- slug: paper
+  name: Paper
